@@ -187,7 +187,6 @@
 
                 const data = await response.json();
 
-                // Convert Discord emoji syntax to images
                 const processedText = data.markovText.replace(
                     /<(?<animated>a?):(?<name>\w+):(?<id>\d+)>/g,
                     (match, animated, name, id) => 
