@@ -17,6 +17,7 @@
             font-family: 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
             min-height: 100vh;
             padding: 20px;
+            overflow: hidden;
         }
 
         .container {
@@ -26,6 +27,8 @@
             margin: 0 auto;
             max-width: 600px;
             padding: 20px;
+            position: relative;
+            z-index: 1;
         }
 
         h1 {
@@ -116,7 +119,6 @@
             padding: 12px;
         }
 
-        /* Typing Animation Styles */
         .typing-indicator {
             display: inline-flex;
             align-items: center;
@@ -214,16 +216,11 @@
             const elements = {
                 output: document.getElementById('output'),
                 error: document.getElementById('error'),
-                loader: document.getElementById('loader'),
                 status: document.getElementById('status'),
                 button: document.querySelector('button')
             };
 
-            // Reset previous state
-            if (currentAnimation) {
-                clearInterval(currentAnimation);
-                elements.output.innerHTML = '';
-            }
+            if (currentAnimation) clearInterval(currentAnimation);
             elements.output.innerHTML = '<span class="thinking">Thinking<span class="typing-indicator"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></span><span class="cursor"></span>';
             elements.error.style.display = 'none';
             elements.button.disabled = true;
@@ -239,33 +236,24 @@
                     body: JSON.stringify({ channelId: '752106070532554833' })
                 });
 
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(errorText.slice(0, 100));
-                }
-
+                if (!response.ok) throw new Error(await response.text());
                 const data = await response.json();
 
-                // Process Discord emojis to images
                 const processedText = data.markovText.replace(
                     /<(?<animated>a?):(?<name>\w+):(?<id>\d+)>/g,
-                    (match, animated, name, id) => 
+                    (_, animated, name, id) => 
                         `<img src="https://cdn.discordapp.com/emojis/${id}.${animated ? 'gif' : 'png'}" 
                              alt=":${name}:" 
                              class="discord-emoji">`
                 );
 
-                // Split into words and emojis
-                const wordElements = processedText.split(/(<img.*?>| )/).filter(w => w.trim() !== '');
-                
-                // Prepare output container
+                const wordElements = processedText.split(/(<img[^>]*>| )/).filter(w => w.trim() !== '');
                 elements.output.innerHTML = '<span class="word-by-word"></span><span class="cursor"></span>';
                 const textContainer = elements.output.querySelector('.word-by-word');
 
                 let index = 0;
                 elements.status.textContent = 'Assembling message...';
 
-                // Animate word-by-word display
                 currentAnimation = setInterval(() => {
                     if (index >= wordElements.length) {
                         clearInterval(currentAnimation);
@@ -277,24 +265,22 @@
                     const word = wordElements[index];
                     const span = document.createElement('span');
                     span.className = 'word';
-                    span.innerHTML = word;
-
-                    // Add space between text elements (except after images)
-                    if (!word.startsWith('<img') && index > 0) {
-                        span.innerHTML = ' ' + span.innerHTML;
+                    
+                    if (word.startsWith('<img')) {
+                        span.innerHTML = word;
+                    } else {
+                        span.textContent = word;
+                        if (index > 0) span.textContent = ' ' + span.textContent;
                     }
 
                     textContainer.appendChild(span);
                     index++;
-
-                    // Auto-scroll to bottom
                     elements.output.scrollTop = elements.output.scrollHeight;
-                }, 75); // Adjust animation speed here (75ms per word)
+                }, 75);
 
             } catch (err) {
-                clearInterval(currentAnimation);
                 elements.output.innerHTML = '';
-                elements.error.textContent = `Error: ${err.message}`;
+                elements.error.textContent = `Error: ${err.message.slice(0, 100)}`;
                 elements.error.style.display = 'block';
                 elements.status.textContent = 'Error occurred';
                 elements.button.disabled = false;
