@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord Markov Generator</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap');
+
+        body {
+            background: #313338;
+            color: #dbdee1;
+            font-family: 'Roboto', 'gg sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: #2b2d31;
+            padding: 24px;
+            border-radius: 8px;
+            width: 780px;
+            margin: 20px auto;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.24);
+        }
+
+        h1 {
+            color: #ffffff;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 24px;
+        }
+
+        .content-box {
+            background: #1e1f22;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        button {
+            background: #5865f2;
+            color: #fff;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 4px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button:hover {
+            background: #4752c4;
+        }
+
+        button:active {
+            background: #3c45a5;
+        }
+
+        #output {
+            white-space: pre-wrap;
+            color: #dbdee1;
+            font-size: 15px;
+            line-height: 1.5;
+            padding: 12px 0;
+        }
+
+        .discord-emoji {
+            width: 22px;
+            height: 22px;
+            vertical-align: middle;
+            margin: 0 1px;
+        }
+
+        .loader {
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top: 3px solid #5865f2;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status-info {
+            color: #b5bac1;
+            font-size: 14px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #404249;
+        }
+
+        .error {
+            color: #fa777c;
+            background: #2a0709;
+            padding: 12px;
+            border-radius: 4px;
+            margin-top: 16px;
+            font-size: 14px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Markov Chain Generator</h1>
+        
+        <div class="input-group">
+            <button onclick="generate()">
+                <span>Generate Message</span>
+                <div class="loader" id="loader"></div>
+            </button>
+        </div>
+
+        <div class="content-box">
+            <div id="output">Click generate to create a message</div>
+        </div>
+
+        <div class="status-info" id="status">
+            Channel ID: 752106070532554833 • Ready to generate
+        </div>
+        
+        <div class="error" id="error"></div>
+    </div>
+
+    <script>
+        async function generate() {
+            const output = document.getElementById('output');
+            const error = document.getElementById('error');
+            const loader = document.getElementById('loader');
+            const status = document.getElementById('status');
+            const button = document.querySelector('button');
+
+            output.textContent = '';
+            error.style.display = 'none';
+            button.disabled = true;
+            loader.style.display = 'block';
+            status.textContent = 'Channel ID: 752106070532554833 • Generating...';
+
+            try {
+                const response = await fetch('/generate-markov', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        channelId: '752106070532554833'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok) throw new Error(data.error);
+                
+                const processedText = data.markovText.replace(/<(?<animated>a?):(?<name>\w+):(?<id>\d+)>/g, (match, animated, name, id) => {
+                    const type = animated ? 'gif' : 'png';
+                    return `<img src="https://cdn.discordapp.com/emojis/${id}.${type}" alt=":${name}:" class="discord-emoji">`;
+                });
+
+                output.innerHTML = processedText;
+                status.textContent = `Channel ID: 752106070532554833 • Generated from ${data.messageCount} messages`;
+
+            } catch (err) {
+                error.textContent = `Error: ${err.message}`;
+                error.style.display = 'block';
+                output.textContent = '';
+                status.textContent = 'Channel ID: 752106070532554833 • Error occurred';
+            } finally {
+                button.disabled = false;
+                loader.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
