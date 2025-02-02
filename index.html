@@ -198,6 +198,10 @@
     <div class="container">
         <h1>Markov Chain Generator</h1>
         <div class="input-group">
+            <label for="username">Username:</label>
+            <input type="text" id="username" placeholder="Enter your username">
+        </div>
+        <div class="input-group">
             <label for="starting-word">Starting Word:</label>
             <input type="text" id="starting-word" placeholder="Enter a starting word (optional)">
         </div>
@@ -239,6 +243,7 @@
                 error: document.getElementById('error'),
                 status: document.getElementById('status'),
                 button: document.querySelector('button'),
+                usernameInput: document.getElementById('username'),
                 startingWordInput: document.getElementById('starting-word')
             };
             if (currentAnimation) clearInterval(currentAnimation);
@@ -247,6 +252,7 @@
             elements.button.disabled = true;
             elements.status.textContent = 'Starting generation...';
             try {
+                const username = elements.usernameInput.value.trim() || 'Anonymous';
                 const startingWord = elements.startingWordInput.value.trim() || undefined;
                 const response = await fetch(API_URL, {
                     method: 'POST',
@@ -254,7 +260,7 @@
                         'Content-Type': 'application/json',
                         'Accept': 'application/json'
                     },
-                    body: JSON.stringify({ channelId: '752106070532554833', startingWord })
+                    body: JSON.stringify({ channelId: '752106070532554833', startingWord, username })
                 });
                 if (!response.ok) throw new Error(await response.text());
                 const data = await response.json();
